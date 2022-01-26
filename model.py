@@ -1,20 +1,23 @@
 from argparse import ArgumentParser
 
+import pandas as pd
 import torch
+import torch.nn as nn
 import pytorch_lightning as pl
 from torch.nn import functional as F
 
 
-class Backbone(torch.nn.Module):
+class Backbone(nn.Module):
     def __init__(self, hidden_dim=128):
         super().__init__()
-        self.l1 = torch.nn.Linear(904, hidden_dim)
-        self.l2 = torch.nn.Linear(hidden_dim, 1)
+        self.l1 = torch.nn.Linear(6, hidden_dim)
+        self.l2 = torch.nn.Linear(hidden_dim, 2)
 
 
     def forward(self, x):
         out = x.view(x.size(0), -1)
-        out = torch.relu(self.l1(out))
+        out = out.float()
+        out = F.gelu(self.l1(out))
         out = self.l2(out)
         return out
 
@@ -24,7 +27,7 @@ class Model(pl.LightningModule):
         super().__init__()
         self.save_hyperparameters()
         self.backbone = backbone
-        self.criterion = torch.nn.BCEWithLogitsLoss()
+        self.criterion = nn.CrossEntropyLoss()
 
     def forward(self, x):
         # use forward for inference/predictions
@@ -33,28 +36,27 @@ class Model(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         x, y = batch
-        y_hat = self.backbone(x).squeeze(1)
-        y = y.float()
+        y_hat = self.backbone(x)
         loss = self.criterion(y_hat, y)
         self.log('train_loss', loss, on_epoch=True)
         return loss
 
     def validation_step(self, batch, batch_idx):
         x, y = batch
-        y_hat = self.backbone(x).squeeze(1)
-        y = y.float()
+        y_hat = self.backbone(x)
+        # y = y.float()
         loss = self.criterion(y_hat, y)
         self.log('valid_loss', loss, on_step=True)
 
-    def test_step(self, batch, batch_idx):
-        x, y = batch
+    def predict_step(self, batch, batch_idx, dataloader_idx=None):
+        x = batch
         y_hat = self.backbone(x)
-        loss = F.cross_entropy(y_hat, y)
-        self.log('test_loss', loss)
+        predict = torch.argmax(torch.softmax(y_hat, dim=1)).detach().item()
+        return predict
 
     def configure_optimizers(self):
         # self.hparams available because we called self.save_hyperparameters()
-        return torch.optim.Adam(self.parameters(), lr=self.hparams.learning_rate)
+        return torch.optim.SGD(self.parameters(), lr=self.hparams.learning_rate, momentum=0.9, nesterov=True)
 
     @staticmethod
     def add_model_specific_args(parent_parser):
