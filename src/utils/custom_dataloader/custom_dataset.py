@@ -28,7 +28,7 @@ class CustomDataset(Dataset):
             labels = torch.tensor(self.csv.iloc[idx, 2], dtype=torch.float).unsqueeze(0)
             return data, labels
         else:
-            data = self.csv.iloc[idx, 2:].to_numpy()
+            data = torch.tensor(self.csv.iloc[idx, 2:], dtype=torch.float)
             return data
         
         

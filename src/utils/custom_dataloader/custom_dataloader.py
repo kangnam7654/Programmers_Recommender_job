@@ -18,31 +18,34 @@ class CustomDataModule(LightningDataModule):
         self.valid_df = valid_df
         self.test_df = test_df
 
-    def train_dataloader(self, train=True, batch_size=8, shuffle=True, drop_last=False):
+    def train_dataloader(self, train=True, batch_size=8, shuffle=True, drop_last=False, num_workers=1):
         self.train_dataset = CustomDataset(self.train_df, train=train)
         return DataLoader(
             self.train_dataset,
             batch_size=batch_size,
             shuffle=shuffle,
             drop_last=drop_last,
+            num_workers=num_workers
         )
 
-    def val_dataloader(self, train=True, batch_size=8, shuffle=False, drop_last=False):
+    def val_dataloader(self, train=True, batch_size=8, shuffle=False, drop_last=False, num_workers=1):
         self.valid_dataset = CustomDataset(self.valid_df, train=train)
         return DataLoader(
             self.valid_dataset,
             batch_size=batch_size,
             shuffle=shuffle,
             drop_last=drop_last,
+            num_workers=num_workers
         )
 
-    def test_dataloader(self, train=False, batch_size=8, shuffle=True, drop_last=False):
+    def predict_dataloader(self, train=False, batch_size=8, shuffle=False, drop_last=False, num_workers=1):
         self.test_dataset = CustomDataset(self.test_df, train=train)
         return DataLoader(
             self.test_dataset,
             batch_size=batch_size,
             shuffle=shuffle,
             drop_last=drop_last,
+            num_workers=num_workers
         )
 
 
